@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Use this script to test if a given TCP host/port are available
+#   Use this script to test with curl if an enpoint is healthy or if a given TCP host/port is available
 
 WAITFORIT_cmdname=${0##*/}
 
@@ -14,6 +14,7 @@ Usage:
     -p PORT | --port=PORT       TCP port under test
                                 Alternatively, you specify the host and port as host:port
     -s | --strict               Only execute subcommand if the test succeeds
+    --protcol=PROTOCOL          Use curl or nc
     -q | --quiet                Don't output any status messages
     -t TIMEOUT | --timeout=TIMEOUT
                                 Timeout in seconds, zero for no timeout
@@ -32,15 +33,22 @@ wait_for()
     WAITFORIT_start_ts=$(date +%s)
     while :
     do
-        if [[ $WAITFORIT_ISBUSY -eq 1 ]]; then
-            nc -z $WAITFORIT_HOST $WAITFORIT_PORT
-            WAITFORIT_result=$?
+        local EXPECTED_RESULT=0
+        if [[ $WAITFORIT_PROTOCOL == "curl" ]]; then
+          EXPECTED_RESULT=200
+          WAITFORIT_result="$(curl --write-out %{http_code} --silent --output /dev/null http://$WAITFORIT_HOST:$WAITFORIT_PORT)"
         else
-            (echo > /dev/tcp/$WAITFORIT_HOST/$WAITFORIT_PORT) >/dev/null 2>&1
-            WAITFORIT_result=$?
+          if [[ $WAITFORIT_ISBUSY -eq 1 ]]; then
+              nc -z $WAITFORIT_HOST $WAITFORIT_PORT
+              WAITFORIT_result=$?
+          else
+              (echo > /dev/tcp/$WAITFORIT_HOST/$WAITFORIT_PORT) >/dev/null 2>&1
+              WAITFORIT_result=$?
+          fi
         fi
-        if [[ $WAITFORIT_result -eq 0 ]]; then
+        if [[ $WAITFORIT_result -eq $EXPECTED_RESULT ]]; then
             WAITFORIT_end_ts=$(date +%s)
+            WAITFORIT_result=0
             echoerr "$WAITFORIT_cmdname: $WAITFORIT_HOST:$WAITFORIT_PORT is available after $((WAITFORIT_end_ts - WAITFORIT_start_ts)) seconds"
             break
         fi
@@ -53,9 +61,9 @@ wait_for_wrapper()
 {
     # In order to support SIGINT during timeout: http://unix.stackexchange.com/a/57692
     if [[ $WAITFORIT_QUIET -eq 1 ]]; then
-        timeout $WAITFORIT_BUSYTIMEFLAG $WAITFORIT_TIMEOUT $0 --quiet --child --host=$WAITFORIT_HOST --port=$WAITFORIT_PORT --timeout=$WAITFORIT_TIMEOUT &
+        timeout $WAITFORIT_BUSYTIMEFLAG $WAITFORIT_TIMEOUT $0 --protocol=$WAITFORIT_PROTOCOL --quiet --child --host=$WAITFORIT_HOST --port=$WAITFORIT_PORT --timeout=$WAITFORIT_TIMEOUT &
     else
-        timeout $WAITFORIT_BUSYTIMEFLAG $WAITFORIT_TIMEOUT $0 --child --host=$WAITFORIT_HOST --port=$WAITFORIT_PORT --timeout=$WAITFORIT_TIMEOUT &
+        timeout $WAITFORIT_BUSYTIMEFLAG $WAITFORIT_TIMEOUT $0 --protocol=$WAITFORIT_PROTOCOL --child --host=$WAITFORIT_HOST --port=$WAITFORIT_PORT --timeout=$WAITFORIT_TIMEOUT &
     fi
     WAITFORIT_PID=$!
     trap "kill -INT -$WAITFORIT_PID" INT
@@ -83,6 +91,10 @@ do
         ;;
         -q | --quiet)
         WAITFORIT_QUIET=1
+        shift 1
+        ;;
+        --protocol=*)
+        WAITFORIT_PROTOCOL="${1#*=}"
         shift 1
         ;;
         -s | --strict)
@@ -140,6 +152,7 @@ WAITFORIT_TIMEOUT=${WAITFORIT_TIMEOUT:-15}
 WAITFORIT_STRICT=${WAITFORIT_STRICT:-0}
 WAITFORIT_CHILD=${WAITFORIT_CHILD:-0}
 WAITFORIT_QUIET=${WAITFORIT_QUIET:-0}
+WAITFORIT_PROTOCOL=${WAITFORIT_PROTOCOL:-default}
 
 # check to see if timeout is from busybox?
 WAITFORIT_TIMEOUT_PATH=$(type -p timeout)

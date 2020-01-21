@@ -9,6 +9,7 @@ wait-for-it.sh host:port [-s] [-t timeout] [-- command args]
 -h HOST | --host=HOST       Host or IP under test
 -p PORT | --port=PORT       TCP port under test
                             Alternatively, you specify the host and port as host:port
+--protcol=PROTOCOL          Use curl or nc
 -s | --strict               Only execute subcommand if the test succeeds
 -q | --quiet                Don't output any status messages
 -t TIMEOUT | --timeout=TIMEOUT
@@ -58,6 +59,20 @@ wait-for-it.sh: waiting 15 seconds for www.google.com:81
 wait-for-it.sh: timeout occurred after waiting 15 seconds for www.google.com:81
 $ echo $?
 124
+```
+
+Testing is a docker service is healthy
+
+Mount the script to your service:
+```
+    volumes:
+      - ./wait-for-it.sh:/wait-for-it.sh:ro
+```
+Update the command or your entrypoint
+
+For example a service which is depending on postgres and ignite can use something similar to:
+```
+    entrypoint: ./wait-for-it.sh postgres:5432 -t 30 -s -- ./wait-for-it.sh --protocol=curl ignite:8080/ignite?cmd=version -t 60 -s -- /docker-entrypoint.sh
 ```
 
 ## Community
