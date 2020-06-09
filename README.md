@@ -9,7 +9,7 @@ wait-for-it.sh host:port [-s] [-t timeout] [-- command args]
 -h HOST | --host=HOST       Host or IP under test
 -p PORT | --port=PORT       TCP port under test
                             Alternatively, you specify the host and port as host:port
---protcol=PROTOCOL          Use curl or nc
+--tool=TOOL                 Use curl or nc
 -s | --strict               Only execute subcommand if the test succeeds
 -q | --quiet                Don't output any status messages
 -t TIMEOUT | --timeout=TIMEOUT
@@ -72,7 +72,7 @@ Update the command or your entrypoint
 
 For example a service which is depending on postgres and ignite can use something similar to:
 ```
-    entrypoint: ./wait-for-it.sh postgres:5432 -t 30 -s -- ./wait-for-it.sh --protocol=curl ignite:8080/ignite?cmd=version -t 60 -s -- /docker-entrypoint.sh
+    entrypoint: ./wait-for-it.sh postgres:5432 -t 30 -s -- ./wait-for-it.sh --tool=curl ignite:8080/ignite?cmd=version -t 60 -s -- /docker-entrypoint.sh
 ```
 
 ## Community

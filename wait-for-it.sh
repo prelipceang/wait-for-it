@@ -14,7 +14,7 @@ Usage:
     -p PORT | --port=PORT       TCP port under test
                                 Alternatively, you specify the host and port as host:port
     -s | --strict               Only execute subcommand if the test succeeds
-    --protcol=PROTOCOL          Use curl or nc
+    --tool=TOOL                 Use curl or nc
     -q | --quiet                Don't output any status messages
     -t TIMEOUT | --timeout=TIMEOUT
                                 Timeout in seconds, zero for no timeout
@@ -61,9 +61,9 @@ wait_for_wrapper()
 {
     # In order to support SIGINT during timeout: http://unix.stackexchange.com/a/57692
     if [[ $WAITFORIT_QUIET -eq 1 ]]; then
-        timeout $WAITFORIT_BUSYTIMEFLAG $WAITFORIT_TIMEOUT $0 --protocol=$WAITFORIT_PROTOCOL --quiet --child --host=$WAITFORIT_HOST --port=$WAITFORIT_PORT --timeout=$WAITFORIT_TIMEOUT &
+        timeout $WAITFORIT_BUSYTIMEFLAG $WAITFORIT_TIMEOUT $0 --tool=$WAITFORIT_TOOL --quiet --child --host=$WAITFORIT_HOST --port=$WAITFORIT_PORT --timeout=$WAITFORIT_TIMEOUT &
     else
-        timeout $WAITFORIT_BUSYTIMEFLAG $WAITFORIT_TIMEOUT $0 --protocol=$WAITFORIT_PROTOCOL --child --host=$WAITFORIT_HOST --port=$WAITFORIT_PORT --timeout=$WAITFORIT_TIMEOUT &
+        timeout $WAITFORIT_BUSYTIMEFLAG $WAITFORIT_TIMEOUT $0 --tool=$WAITFORIT_TOOL --child --host=$WAITFORIT_HOST --port=$WAITFORIT_PORT --timeout=$WAITFORIT_TIMEOUT &
     fi
     WAITFORIT_PID=$!
     trap "kill -INT -$WAITFORIT_PID" INT
@@ -93,8 +93,8 @@ do
         WAITFORIT_QUIET=1
         shift 1
         ;;
-        --protocol=*)
-        WAITFORIT_PROTOCOL="${1#*=}"
+        --tool=*)
+        WAITFORIT_TOOL="${1#*=}"
         shift 1
         ;;
         -s | --strict)
@@ -152,7 +152,7 @@ WAITFORIT_TIMEOUT=${WAITFORIT_TIMEOUT:-15}
 WAITFORIT_STRICT=${WAITFORIT_STRICT:-0}
 WAITFORIT_CHILD=${WAITFORIT_CHILD:-0}
 WAITFORIT_QUIET=${WAITFORIT_QUIET:-0}
-WAITFORIT_PROTOCOL=${WAITFORIT_PROTOCOL:-default}
+WAITFORIT_TOOL=${WAITFORIT_TOOL:-default}
 
 # check to see if timeout is from busybox?
 WAITFORIT_TIMEOUT_PATH=$(type -p timeout)
